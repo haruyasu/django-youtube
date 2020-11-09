@@ -1,2 +1,1 @@
-# Django Twitter
-# django-youtube
+# Django YouTube
