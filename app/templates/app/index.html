@@ -2,6 +2,19 @@
 
 {% block content %}
 
-<p>test</p>
+<div class="card-columns">
+    {% for index, row in youtube_data.iterrows %}
+        <div class="card">
+            <div class="card-body">
+                <div class="embed-responsive embed-responsive-16by9 mb-3">
+                    <iframe class="embed-responsive-item" src="{{ row.url }}" allowfullscreen></iframe>
+                </div>
+                <div class="mb-1">{{ row.title|truncatechars:30 }}</div>
+                <div class="mb-1">{{ row.channeltitle }}</div>
+                <div>{{ row.viewcount }}回視聴・{{ row.publishtime }}</div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
 
 {% endblock %}
