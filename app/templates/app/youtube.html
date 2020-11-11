@@ -1,0 +1,36 @@
+{% extends "app/base.html" %}
+
+{% block content %}
+
+<h4 class="mb-3">検索キーワード「{{ keyword }}」</h4>
+
+<div class="card-columns">
+    {% for index, row in youtube_data.iterrows %}
+        <div class="card">
+            <div class="card-body">
+                <div class="embed-responsive embed-responsive-16by9 mb-3">
+                    <iframe class="embed-responsive-item" src="{{ row.url }}" allowfullscreen></iframe>
+                </div>
+                <div class="d-flex">
+                    <div class="profile_picture mr-3">
+                        <img src="{{ row.profileImg }}" class="card-img-top rounded-circle" alt="">
+                    </div>
+                    <div class="">
+                        <div class="mb-2 font-weight-bold">{{ row.title|safe|truncatechars:25 }}</div>
+                        <div class="mb-2">{{ row.channeltitle }}</div>
+                        <div class="mb-3">{{ row.viewcount }}回視聴・{{ row.publishtime }}</div>
+                        <div class="">
+                            <i class="fas fa-thumbs-up text-secondary mr-2"></i><span class="mr-3">{{ row.likeCount }}</span>
+                            <i class="fas fa-thumbs-down text-secondary mr-2"></i><span class="mr-3">{{ row.dislikeCount }}</span>
+                            <i class="fas fa-comment text-secondary mr-2"></i><span>{{ row.commentCount }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <h4>検索にヒットした動画はありません</h4>
+    {% endfor %}
+</div>
+
+{% endblock %}
