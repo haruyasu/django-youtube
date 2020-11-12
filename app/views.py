@@ -1,7 +1,7 @@
 from django.views.generic import View
 from django.shortcuts import render, redirect
 from apiclient.discovery import build
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from django.conf import settings
 from .forms import YoutubeForm
 import pandas as pd
@@ -63,7 +63,7 @@ def get_channel(videoid_list):
 
 
 # 動画データ取得
-def get_videos(videoid_list):
+def get_video(videoid_list):
     count_list = []
     for videoid, channelid in videoid_list.items():
         # youtube.videos
@@ -97,7 +97,11 @@ def get_videos(videoid_list):
 def make_df(search_list, channel_list, count_list, viewcount):
     # データフレームの作成
     youtube_data = pd.DataFrame(search_list, columns=[
-        'videoid', 'channelId', 'publishtime', 'title', 'channeltitle'
+        'videoid',
+        'channelId',
+        'publishtime',
+        'title',
+        'channeltitle'
     ])
 
     # 重複の削除 subsetで重複を判定する列を指定,inplace=Trueでデータフレームを新しくするかを指定
@@ -108,10 +112,15 @@ def make_df(search_list, channel_list, count_list, viewcount):
 
     # データフレームの作成
     df_channel = pd.DataFrame(channel_list, columns=[
-        'videoid', 'profileImg'
+        'videoid',
+        'profileImg'
     ])
     df_viewcount = pd.DataFrame(count_list, columns=[
-        'videoid', 'viewcount', 'likeCount', 'dislikeCount', 'commentCount'
+        'videoid',
+        'viewcount',
+        'likeCount',
+        'dislikeCount',
+        'commentCount'
     ])
 
     # 2つのデータフレームのマージ
@@ -139,6 +148,80 @@ def make_df(search_list, channel_list, count_list, viewcount):
     youtube_data['viewcount'] = youtube_data['viewcount'].astype(str)
 
     return youtube_data
+
+
+# キーワード動画検索
+def search_rivalvideo(channelid_list, search_start, search_end):
+    # ライバルのチャンネルを検索した動画を入れるリスト
+    rivalvideo_list = []
+
+    for channelid in channelid_list:
+        # youtube.search
+        result = YOUTUBE_API.search().list(
+            part='snippet',
+            # ライバルのチャンネルIDを指定
+            channelId=channelid,
+            # 1回の試行における最大の取得数
+            maxResults=2,
+            # 視聴回数が多い順に取得
+            order='viewCount',
+            # 検索開始日
+            publishedAfter=search_start.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            # 検索終了日
+            publishedBefore=search_end.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            # 動画タイプ
+            type='video',
+            # 地域コード
+            regionCode='JP',
+        ).execute()
+
+        for item in result['items']:
+            published_at = datetime.strptime(item['snippet']['publishedAt'], '%Y-%m-%dT%H:%M:%SZ').strftime('%Y-%m-%d')
+            rivalvideo_list.append([
+                item['id']['videoId'], # 動画ID
+                item['snippet']['channelId'], # チャンネルID
+                item['snippet']['channelTitle'], # チャンネル名
+                item['snippet']['title'], # 動画タイトル
+                published_at, # 動画公開日時
+            ])
+
+    return rivalvideo_list
+
+
+def search_relatedvideo(rivalvideo_list, myChannelId):
+    related_list = []
+    for rivalvideo in rivalvideo_list:
+        result = YOUTUBE_API.search().list(
+            part='snippet',
+            # ライバルの動画IDを指定
+            relatedToVideoId=rivalvideo[0],
+            # 1回の試行における最大の取得数
+            maxResults=4,
+            # 視聴回数が多い順に取得
+            order='viewCount',
+            # 動画タイプ
+            type='video',
+            # 地域コード
+            regionCode='JP',
+        ).execute()
+
+        for item in result['items']:
+            if item['snippet']['channelId'] == myChannelId:
+                published_at = datetime.strptime(item['snippet']['publishedAt'], '%Y-%m-%dT%H:%M:%SZ').strftime('%Y-%m-%d')
+                related_list.append([
+                    str(result['items'].index(item)) + '番目',
+                    item['id']['videoId'], # 動画ID
+                    item['snippet']['channelId'], # チャンネルID
+                    item['snippet']['channelTitle'], # チャンネル名
+                    item['snippet']['title'], # 動画タイトル
+                    published_at, # 動画公開日時
+                    rivalvideo[0], # ライバル動画ID
+                    rivalvideo[1], # ライバルチャンネルID
+                    rivalvideo[2], # ライバルチャンネル名
+                    rivalvideo[3], # ライバル動画タイトル
+                    rivalvideo[4], # ライバル動画公開日時
+                ])
+    return related_list
 
 
 class IndexView(View):
@@ -188,14 +271,136 @@ class IndexView(View):
             channel_list = get_channel(videoid_list)
 
             # 動画データ取得
-            count_list = get_videos(videoid_list)
+            count_list = get_video(videoid_list)
 
             # 動画データをデータフレーム化する
             youtube_data = make_df(search_list, channel_list, count_list, viewcount)
 
-            return render(request, 'app/youtube.html', {
+            return render(request, 'app/keyword.html', {
                 'youtube_data': youtube_data,
                 'keyword': keyword
             })
         else:
             return redirect('index')
+
+
+class RelatedView(View):
+    def get(self, request, *args, **kwargs):
+        channelid_list = ['UCgQgMOBZOJ1ZDtCZ4hwP1uQ']
+        myChannelId = 'UCaminwG9MTO4sLYeC3s6udA'
+
+        search_start = datetime.today() - timedelta(days=30)
+        search_end = datetime.today()
+
+        # ライバル動画を検索
+        rivalvideo_list = search_rivalvideo(channelid_list, search_start, search_end)
+
+        # 関連動画を検索
+        related_list = search_relatedvideo(rivalvideo_list, myChannelId)
+
+        # 動画IDリスト作成
+        videoid_list = {}
+        id_list = []
+        for item in related_list:
+            # key：動画ID
+            # value：チャンネルID
+            videoid_list[item[1]] = item[2]
+            id_list.append(item[1])
+
+        # チャンネルデータ取得
+        channel_list = get_channel(videoid_list)
+
+        # 動画データ取得
+        count_list = get_video(videoid_list)
+
+        # ライバル動画IDリスト作成
+        rivalvideoid_list = {}
+        for item in related_list:
+            # key：ライバル動画ID
+            # value：ライバルチャンネルID
+            rivalvideoid_list[item[6]] = item[7]
+
+        # ライバルチャンネルデータ取得
+        rivalchannel_list = get_channel(rivalvideoid_list)
+
+        # ライバル動画データ取得
+        rivalcount_list = get_video(rivalvideoid_list)
+
+        # データフレームの作成
+        youtube_data = pd.DataFrame(related_list, columns=[
+            'ranking', # ランキング
+            'videoid', # 動画ID
+            'channelid', # チャンネルID
+            'channeltitle', # チャンネル名
+            'title', # 動画タイトル
+            'publishtime', # 動画公開日
+            'rivalvideoid', # ライバル動画ID
+            'rivalchannelid', # ライバルチャンネルID
+            'rivalchanneltitle', # ライバルチャンネル名
+            'rivaltitle', # ライバル動画タイトル
+            'rivalpublishtime', # ライバル動画公開日時
+        ])
+
+        # 重複の削除 subsetで重複を判定する列を指定,inplace=Trueでデータフレームを新しくするかを指定
+        youtube_data.drop_duplicates(subset='videoid', inplace=True)
+
+        # 動画のURL
+        youtube_data['url'] = 'https://www.youtube.com/embed/' + youtube_data['videoid']
+        youtube_data['rivalurl'] = 'https://www.youtube.com/embed/' + youtube_data['rivalvideoid']
+
+        # データフレームの作成
+        df_channel = pd.DataFrame(channel_list, columns=[
+            'videoid',
+            'profileImg'
+        ])
+        df_viewcount = pd.DataFrame(count_list, columns=[
+            'videoid',
+            'viewcount',
+            'likeCount',
+            'dislikeCount',
+            'commentCount'
+        ])
+        # df_rivalchannel = pd.DataFrame(rivalchannel_list, columns=[
+        #     'videoid',
+        #     'rivalprofileImg'
+        # ])
+        # df_rivalviewcount = pd.DataFrame(rivalcount_list, columns=[
+        #     'videoid',
+        #     'rivalviewcount',
+        #     'rivallikeCount',
+        #     'rivaldislikeCount',
+        #     'rivalcommentCount'
+        # ])
+
+        # 2つのデータフレームのマージ
+        youtube_data = pd.merge(df_channel, youtube_data, on='videoid', how='left')
+        youtube_data = pd.merge(df_viewcount, youtube_data, on='videoid', how='left')
+        # youtube_data = pd.merge(df_rivalchannel, youtube_data, on='videoid', how='left')
+        # youtube_data = pd.merge(df_rivalviewcount, youtube_data, on='videoid', how='left')
+
+        # データフレーム抽出
+        youtube_data = youtube_data[[
+            'ranking', # ランキング
+            'url', # 動画URL
+            'profileImg', # プロフィール画像
+            'title', # 動画タイトル
+            'channeltitle', # チャンネル名
+            'viewcount', # 再生回数
+            'publishtime', # 動画公開日
+            'likeCount', # 高評価数
+            'dislikeCount', # 低評価数
+            'commentCount', # コメント数
+            'rivalurl',# ライバル動画URL
+            # 'rivalprofileImg', # ライバルプロフィール画像
+            'rivaltitle', # ライバル動画タイトル
+            'rivalchanneltitle', # ライバルチャンネル名
+            # 'rivalviewcount', # ライバル再生回数
+            'rivalpublishtime', # ライバル動画公開日
+            # 'rivallikeCount', # ライバル高評価数
+            # 'rivaldislikeCount', # ライバル低評価数
+            # 'rivalcommentCount', # ライバルコメント数
+        ]]
+
+        return render(request, 'app/related.html', {
+            'youtube_data': youtube_data
+        })
