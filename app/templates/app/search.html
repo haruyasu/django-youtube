@@ -1,0 +1,79 @@
+{% extends "app/base.html" %}
+{% load widget_tweaks %}
+
+{% block content %}
+
+<h2 class="my-4">関連動画検索</h2>
+
+<div class="table-responsive search-table">
+    <table class="table">
+        <form method="post">
+            {% csrf_token %}
+            <tbody>
+                <tr>
+                    <th scope="row">
+                        <label class="control-label" for="comment">自分のチャンネルID</label>
+                    </th>
+                    <td>
+                        {% render_field form.my_channel_id class="form-control" placeholder="自分のチャンネルID" %}
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label class="control-label" for="comment">相手のチャンネルID(複数はコンマで区切る)</label>
+                    </th>
+                    <td>
+                        {% render_field form.rival_channel_id class="form-control" placeholder="相手のチャンネルID" %}
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label class="control-label" for="comment">相手動画の検索数</label>
+                    </th>
+                    <td>
+                        {% render_field form.rival_items_count class="form-control" placeholder="検索数" %}
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label class="control-label" for="comment">相手動画の並び順</label>
+                    </th>
+                    <td>
+                        {% render_field form.rival_order class="form-control" placeholder="並び順" %}
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label class="control-label" for="comment">相手動画の検索開始日</label>
+                    </th>
+                    <td>
+                        {% render_field form.rival_search_start class="form-control" placeholder="検索開始日" %}
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label class="control-label" for="comment">相手動画の検索終了日</label>
+                    </th>
+                    <td>
+                        {% render_field form.rival_search_end class="form-control" placeholder="検索終了日" %}
+                    </td>
+                </tr>
+                <tr>
+                    <th scope="row">
+                        <label class="control-label" for="comment">関連動画の検索数</label>
+                    </th>
+                    <td>
+                        {% render_field form.related_items_count class="form-control" placeholder="検索数" %}
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="text-center">
+                        <button class="btn btn-warning" type="submit">検索する</button>
+                    </td>
+                </tr>
+            </tbody>
+        </form>
+    </table>
+</div>
+
+{% endblock %}

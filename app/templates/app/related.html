@@ -3,65 +3,56 @@
 
 {% block content %}
 
-<h2 class="my-4">関連動画検索</h2>
+<h4 class="mb-3">関連動画</h4>
 
 {% for index, row in youtube_data.iterrows %}
-<div class="row mb-2">
-    <div class="col-6">
-        <div class="card">
-            <div class="card-body">
-                <p>関連動画：{{ row.ranking }}</p>
-                <div class="embed-responsive embed-responsive-16by9 mb-3">
-                    <iframe class="embed-responsive-item" src="{{ row.url }}" allowfullscreen></iframe>
-                </div>
-                <div class="d-flex">
-                    <div class="profile_picture mr-3">
-                        <img src="{{ row.profileImg }}" class="card-img-top rounded-circle" alt="">
+    <div class="card mb-2">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-5">
+                    <div class="embed-responsive embed-responsive-16by9 mb-3">
+                        <iframe class="embed-responsive-item" src="{{ row.url }}" allowfullscreen></iframe>
                     </div>
-                    <div class="">
-                        <div class="mb-2 font-weight-bold">{{ row.title|safe|truncatechars:25 }}</div>
-                        <div class="mb-2">{{ row.channeltitle }}</div>
-                        <div class="mb-3">{{ row.viewcount }}回視聴・{{ row.publishtime }}</div>
+                    <div class="d-flex">
+                        <div class="profile_picture mr-3">
+                            <img src="{{ row.profileImg }}" class="card-img-top rounded-circle" alt="">
+                        </div>
                         <div class="">
-                            <i class="fas fa-thumbs-up text-secondary mr-2"></i>
-                            <span class="mr-3">{{ row.likeCount }}</span>
-                            <i class="fas fa-thumbs-down text-secondary mr-2"></i>
-                            <span class="mr-3">{{ row.dislikeCount }}</span>
-                            <i class="fas fa-comment text-secondary mr-2"></i>
-                            <span>{{ row.commentCount }}</span>
+                            <div class="mb-2 font-weight-bold">{{ row.title|safe|truncatechars:25 }}</div>
+                            <div class="mb-2">{{ row.channeltitle }}</div>
+                            <div class="mb-3">{{ row.viewcount }}回視聴・{{ row.publishtime }}</div>
+                            <div class="">
+                                <i class="fas fa-thumbs-up text-secondary mr-2"></i>
+                                <span class="mr-3">{{ row.likeCount }}</span>
+                                <i class="fas fa-thumbs-down text-secondary mr-2"></i>
+                                <span class="mr-3">{{ row.dislikeCount }}</span>
+                                <i class="fas fa-comment text-secondary mr-2"></i>
+                                <span>{{ row.commentCount }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-6">
-        <div class="card">
-            <div class="card-body">
-                <div class="embed-responsive embed-responsive-16by9 mb-3">
-                    <iframe class="embed-responsive-item" src="{{ row.rivalurl }}" allowfullscreen></iframe>
+                <div class="col-2">
+                    <div class="d-flex flex-column align-items-center justify-content-center">
+                        <h4 class="mb-5">関連動画</h4>
+                        <i class="fas fa-arrow-left h4 mb-3"></i>
+                        <h2 class="">{{ row.ranking }}位表示</h2>
+                    </div>
                 </div>
-                <div class="d-flex">
-                    <div class="profile_picture mr-3">
-                        <img src="{{ row.rivalprofileImg }}" class="card-img-top rounded-circle" alt="">
+                <div class="col-5">
+                    <div class="embed-responsive embed-responsive-16by9 mb-3">
+                        <iframe class="embed-responsive-item" src="{{ row.rivalurl }}" allowfullscreen></iframe>
                     </div>
                     <div class="">
                         <div class="mb-2 font-weight-bold">{{ row.rivaltitle|safe|truncatechars:25 }}</div>
                         <div class="mb-2">{{ row.rivalchanneltitle }}</div>
-                        <div class="mb-3">{{ row.rivalviewcount }}回視聴・{{ row.rivalpublishtime }}</div>
-                        <div class="">
-                            <i class="fas fa-thumbs-up text-secondary mr-2"></i>
-                            <span class="mr-3">{{ row.rivallikeCount }}</span>
-                            <i class="fas fa-thumbs-down text-secondary mr-2"></i>
-                            <span class="mr-3">{{ row.rivaldislikeCount }}</span>
-                            <i class="fas fa-comment text-secondary mr-2"></i>
-                            <span>{{ row.rivalcommentCount }}</span>
-                        </div>
+                        <div>{{ row.rivalpublishtime }}</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+    {% empty %}
+    <h4>検索にヒットした動画はありません</h4>
 {% endfor %}
 {% endblock %}
