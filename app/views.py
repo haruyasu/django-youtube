@@ -151,7 +151,7 @@ def make_df(search_list, channel_list, count_list, viewcount):
 
 
 # ライバル動画検索
-def search_rivalvideo(channelid_list, items_count, order, search_start, search_end):
+def search_rivalvideo(channelid_list, rival_items_count, rival_order, rival_search_start, rival_search_end):
     # ライバルのチャンネルを検索した動画を入れるリスト
     rivalvideo_list = []
 
@@ -162,13 +162,13 @@ def search_rivalvideo(channelid_list, items_count, order, search_start, search_e
             # ライバルのチャンネルIDを指定
             channelId=channelid,
             # 1回の試行における最大の取得数
-            maxResults=items_count,
+            maxResults=rival_items_count,
             # 順番
-            order=order,
+            order=rival_order,
             # 検索開始日
-            publishedAfter=search_start.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            publishedAfter=rival_search_start.strftime('%Y-%m-%dT%H:%M:%SZ'),
             # 検索終了日
-            publishedBefore=search_end.strftime('%Y-%m-%dT%H:%M:%SZ'),
+            publishedBefore=rival_search_end.strftime('%Y-%m-%dT%H:%M:%SZ'),
             # 動画タイプ
             type='video',
             # 地域コード
@@ -188,7 +188,7 @@ def search_rivalvideo(channelid_list, items_count, order, search_start, search_e
     return rivalvideo_list
 
 # 関連動画検索
-def search_relatedvideo(rivalvideo_list, myChannelId, items_count):
+def search_relatedvideo(rivalvideo_list, my_channel_id, related_items_count):
     related_list = []
     for rivalvideo in rivalvideo_list:
         result = YOUTUBE_API.search().list(
@@ -196,7 +196,7 @@ def search_relatedvideo(rivalvideo_list, myChannelId, items_count):
             # ライバルの動画IDを指定
             relatedToVideoId=rivalvideo[0],
             # 1回の試行における最大の取得数
-            maxResults=items_count,
+            maxResults=related_items_count,
             # 動画タイプ
             type='video',
             # 地域コード
@@ -204,7 +204,7 @@ def search_relatedvideo(rivalvideo_list, myChannelId, items_count):
         ).execute()
 
         for item in result['items']:
-            if item['snippet']['channelId'] == myChannelId:
+            if item['snippet']['channelId'] == my_channel_id:
                 published_at = datetime.strptime(item['snippet']['publishedAt'], '%Y-%m-%dT%H:%M:%SZ').strftime('%Y-%m-%d')
                 related_list.append([
                     result['items'].index(item) + 1,
@@ -387,12 +387,10 @@ class RelatedView(View):
 
             # 動画IDリスト作成
             videoid_list = {}
-            id_list = []
             for item in related_list:
                 # key：動画ID
                 # value：チャンネルID
                 videoid_list[item[1]] = item[2]
-                id_list.append(item[1])
 
             # チャンネルデータ取得
             channel_list = get_channel(videoid_list)
